@@ -12,9 +12,9 @@ test_pipeline_integration.py.
 import numpy as np
 from unittest.mock import MagicMock
 
-from src.chunking.chunker import Chunk
-from src.vectorstore.store import VectorStore
-from src.retrieval.retriever import Retriever, RetrievalResult
+from citewell.chunking.chunker import Chunk
+from citewell.vectorstore.store import VectorStore
+from citewell.retrieval.retriever import Retriever, RetrievalResult
 
 
 def _make_fake_store(n=5, dim=384, seed=0):
@@ -58,7 +58,7 @@ def test_retrieve_routes_query_through_embedder_then_vectorstore():
 
 
 def test_retrieve_respects_default_top_k_from_config():
-    from src import config
+    from citewell import config
     store, embeddings = _make_fake_store(n=10)
     mock_embedder = MagicMock()
     mock_embedder.embed_query.return_value = embeddings[0]

@@ -12,14 +12,14 @@ separately in test_eval_integration.py.
 import pytest
 from unittest.mock import MagicMock
 
-from evaluation.metrics import (
+from citewell.evaluation.metrics import (
     is_relevant_chunk,
     find_rank_of_relevant_chunk,
     evaluate_retrieval,
 )
-from evaluation.test_sets_loader import EvalItem
-from src.chunking.chunker import Chunk
-from src.retrieval.retriever import RetrievalResult
+from citewell.evaluation.test_sets_loader import EvalItem
+from citewell.chunking.chunker import Chunk
+from citewell.retrieval.retriever import RetrievalResult
 
 
 def _chunk(source, clause_number=None, text="some text"):

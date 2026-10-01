@@ -2,11 +2,11 @@
 Tests for src/chunking/chunker.py
 """
 
-from src.ingestion.loaders import load_documents_from_dir
-from src.chunking.chunker import recursive_chunk, clause_aware_chunk
+from citewell.ingestion.loaders import load_documents_from_dir
+from citewell.chunking.chunker import recursive_chunk, clause_aware_chunk
 from pathlib import Path
 
-SAMPLE_DIR = Path(__file__).resolve().parent.parent / "data" / "sample_docs"
+SAMPLE_DIR = Path(__file__).resolve().parent.parent / "storage" / "sample_docs"
 
 
 def _load_pages():

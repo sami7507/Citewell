@@ -9,14 +9,14 @@ achieve exhaustive coverage.
 import pytest
 from pathlib import Path
 
-from src.ingestion.loaders import (
+from citewell.ingestion.loaders import (
     load_document,
     load_pdf,
     load_documents_from_dir,
     PageContent,
 )
 
-SAMPLE_DIR = Path(__file__).resolve().parent.parent / "data" / "sample_docs"
+SAMPLE_DIR = Path(__file__).resolve().parent.parent / "storage" / "sample_docs"
 
 
 def test_load_pdf_returns_page_content_objects():

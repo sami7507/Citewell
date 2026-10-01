@@ -11,9 +11,9 @@ import os
 import pytest
 from unittest.mock import MagicMock, patch
 
-from src.generation.generator import Generator, GeneratedAnswer, _format_source_label, _build_context_block
-from src.retrieval.retriever import RetrievalResult
-from src.chunking.chunker import Chunk
+from citewell.generation.generator import Generator, GeneratedAnswer, _format_source_label, _build_context_block
+from citewell.retrieval.retriever import RetrievalResult
+from citewell.chunking.chunker import Chunk
 
 
 def _make_result(source, page, text, clause_number=None, clause_title=None, score=0.9):
@@ -85,7 +85,7 @@ def test_generator_raises_clear_error_with_no_api_key(monkeypatch):
     # wherever it runs — it should pass deterministically everywhere,
     # including on a machine with a real .env configured (which is exactly
     # the setup we want in production).
-    monkeypatch.setattr("src.generation.generator.config.GROQ_API_KEY", "")
+    monkeypatch.setattr("citewell.generation.generator.config.GROQ_API_KEY", "")
 
     with pytest.raises(ValueError, match="No Groq API key found"):
         Generator(api_key="")

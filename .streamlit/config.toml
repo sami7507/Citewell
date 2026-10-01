@@ -1,31 +1,21 @@
-# Streamlit theme — full dark "ledger and seal" theme.
-#
-# WHY base = "dark" MATTERS (this fixes real bugs from the previous
-# light-main/dark-sidebar approach): setting base="dark" tells Streamlit's
-# own component rendering (buttons, the file uploader, code spans, sliders,
-# etc.) to use dark-mode-appropriate internal styling automatically. The
-# previous approach tried to force a dark LOOK onto light-mode components
-# via blanket CSS color overrides — which broke wherever a Streamlit widget
-# had its own background we hadn't accounted for (e.g. the file uploader's
-# "Browse files" button rendered with invisible text). Using the real theme
-# system instead of fighting it with !important overrides means Streamlit
-# picks correct, readable contrast for its native widgets by construction.
+# Streamlit theme for Citewell (light, cool-grey desk with teal actions).
+# Custom styling lives in frontend/theme.py; this file lets Streamlit's own
+# widgets (uploader, slider, buttons) pick contrast-correct colours natively.
 
 [theme]
-base = "dark"
-primaryColor = "#C9A227"
-backgroundColor = "#10151F"
-secondaryBackgroundColor = "#1B2438"
-textColor = "#EAE7DD"
+base = "light"
+primaryColor = "#0D5C63"
+backgroundColor = "#F2F4F1"
+secondaryBackgroundColor = "#E8EDEA"
+textColor = "#14201C"
 font = "sans serif"
 
-# Explicit upload cap for the deployed free-tier app. Left at Streamlit's
-# 200MB default, a very large real-world PDF (176+ pages, table-heavy) can
-# exceed the free tier's constrained CPU/RAM during processing — a genuine
-# resource limitation, not a bug in the pipeline itself (the same file
-# processes fine locally, without the free tier's throttling). A lower,
-# explicit limit gives users a clear "file too large" message instead of
-# an opaque upload failure, and protects the shared free-tier instance
-# from being overwhelmed by one very large upload.
 [server]
+# Explicit upload cap: very large PDFs can exhaust a free-tier instance.
 maxUploadSize = 50
+
+[browser]
+gatherUsageStats = false
+
+[client]
+toolbarMode = "minimal"

@@ -1,5 +1,5 @@
 """
-Tests for app/app_logic.py
+Tests for citewell/services (secrets bridging and upload processing)
 
 We fake Streamlit's UploadedFile objects (which just need .name and
 .getbuffer()) rather than depending on Streamlit's actual upload widget,
@@ -10,7 +10,8 @@ fast, deterministic, and independent of Streamlit's runtime.
 import io
 from unittest.mock import MagicMock
 
-from app.app_logic import bridge_secrets_to_env, secrets_file_exists, uploaded_files_signature, build_retriever_from_uploads
+from citewell.services.secrets import bridge_secrets_to_env, secrets_file_exists
+from citewell.services.uploads import build_retriever_from_uploads, uploaded_files_signature
 
 
 class FakeUploadedFile:
@@ -57,7 +58,7 @@ def test_bridge_secrets_to_env_handles_object_that_raises_on_contains():
 
 def test_secrets_file_exists_returns_false_when_no_file_present(monkeypatch, tmp_path):
     # Point both candidate locations somewhere that definitely has no file.
-    monkeypatch.setattr("app.app_logic.Path.home", lambda: tmp_path / "nonexistent_home")
+    monkeypatch.setattr("citewell.services.secrets.Path.home", lambda: tmp_path / "nonexistent_home")
     assert secrets_file_exists() is False
 
 
@@ -94,7 +95,7 @@ def test_build_retriever_from_uploads_processes_a_real_pdf():
     this test; the chunking/table-extraction path is exercised for real.
     """
     from pathlib import Path
-    sample_path = Path(__file__).resolve().parent.parent / "data" / "sample_docs" / "sample_lease_agreement.pdf"
+    sample_path = Path(__file__).resolve().parent.parent / "storage" / "sample_docs" / "sample_lease_agreement.pdf"
     content = sample_path.read_bytes()
     fake_upload = FakeUploadedFile("sample_lease_agreement.pdf", content)
 

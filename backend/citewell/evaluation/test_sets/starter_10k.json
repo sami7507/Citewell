@@ -1,0 +1,62 @@
+[
+  {
+    "id": "tenk_01",
+    "question": "What was total net revenue in fiscal 2024?",
+    "expected_answer": "$4.82 billion.",
+    "expected_source_doc": "sample_10k_excerpt.pdf",
+    "expected_clause_number": null,
+    "expected_keywords": [
+      "$4.82"
+    ]
+  },
+  {
+    "id": "tenk_02",
+    "question": "What was the gross margin in fiscal 2024?",
+    "expected_answer": "60.4%.",
+    "expected_source_doc": "sample_10k_excerpt.pdf",
+    "expected_clause_number": null,
+    "expected_keywords": [
+      "60.4%"
+    ]
+  },
+  {
+    "id": "tenk_03",
+    "question": "What was net income in fiscal 2024?",
+    "expected_answer": "$612 million.",
+    "expected_source_doc": "sample_10k_excerpt.pdf",
+    "expected_clause_number": null,
+    "expected_keywords": [
+      "$612"
+    ]
+  },
+  {
+    "id": "tenk_04",
+    "question": "How much cash and cash equivalents did the company have?",
+    "expected_answer": "$1.15 billion.",
+    "expected_source_doc": "sample_10k_excerpt.pdf",
+    "expected_clause_number": null,
+    "expected_keywords": [
+      "$1.15"
+    ]
+  },
+  {
+    "id": "tenk_05",
+    "question": "How many research and development employees were there in fiscal 2024?",
+    "expected_answer": "3,850.",
+    "expected_source_doc": "sample_10k_excerpt.pdf",
+    "expected_clause_number": null,
+    "expected_keywords": [
+      "3,850"
+    ]
+  },
+  {
+    "id": "tenk_06",
+    "question": "What were total operating expenses in fiscal 2024?",
+    "expected_answer": "$1.98 billion.",
+    "expected_source_doc": "sample_10k_excerpt.pdf",
+    "expected_clause_number": null,
+    "expected_keywords": [
+      "$1.98"
+    ]
+  }
+]

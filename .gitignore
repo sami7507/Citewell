@@ -1,37 +1,22 @@
-# Environment / secrets
+# Secrets and local config
 .env
 .streamlit/secrets.toml
 
 # Python
 __pycache__/
-*.pyc
-*.pyo
-.venv/
-venv/
-env/
-*.egg-info/
+*.py[cod]
 .pytest_cache/
+venv/
+.venv/
 
-# Vector store / generated data (large / rebuildable — keep sample_docs, ignore processed output)
-data/processed/*
-!data/processed/.gitkeep
+# Generated at runtime
+storage/index/
+storage/*.db
+storage/*.db-wal
+storage/*.db-shm
+storage/eval_results/
 
-# Evaluation reports (regenerable via evaluation/run_eval.py — keep one sample for the README if desired)
-evaluation/results/*
-!evaluation/results/.gitkeep
-
-# Any stray PDF dropped in the project root during local testing (e.g. a
-# real document used to test upload mode) — sample docs live under
-# data/sample_docs/ and are unaffected by this rule.
-/*.pdf
-
-# Jupyter
-.ipynb_checkpoints/
-
-# OS
+# OS / editor
 .DS_Store
-Thumbs.db
-
-# IDE
-.vscode/
 .idea/
+.vscode/

@@ -1,0 +1,72 @@
+[
+  {
+    "id": "lease_01",
+    "question": "Who is the landlord in the lease?",
+    "expected_answer": "Meridian Properties LLC.",
+    "expected_source_doc": "sample_lease_agreement.pdf",
+    "expected_clause_number": "1",
+    "expected_keywords": [
+      "Meridian"
+    ]
+  },
+  {
+    "id": "lease_02",
+    "question": "When does the lease term start and end?",
+    "expected_answer": "It runs from January 1, 2025 to December 31, 2025.",
+    "expected_source_doc": "sample_lease_agreement.pdf",
+    "expected_clause_number": "2",
+    "expected_keywords": [
+      "2025"
+    ]
+  },
+  {
+    "id": "lease_03",
+    "question": "What is the monthly rent?",
+    "expected_answer": "$2,400.00, due on the 1st of each month.",
+    "expected_source_doc": "sample_lease_agreement.pdf",
+    "expected_clause_number": "3",
+    "expected_keywords": [
+      "$2,400.00"
+    ]
+  },
+  {
+    "id": "lease_04",
+    "question": "How much is the late fee for rent?",
+    "expected_answer": "$75.00 for payments received after the 5th.",
+    "expected_source_doc": "sample_lease_agreement.pdf",
+    "expected_clause_number": "3",
+    "expected_keywords": [
+      "$75.00"
+    ]
+  },
+  {
+    "id": "lease_05",
+    "question": "Are pets allowed, and what extra deposit applies?",
+    "expected_answer": "Only with written consent, plus a $500.00 pet deposit.",
+    "expected_source_doc": "sample_lease_agreement.pdf",
+    "expected_clause_number": "7",
+    "expected_keywords": [
+      "$500.00"
+    ]
+  },
+  {
+    "id": "lease_06",
+    "question": "How quickly must the landlord handle emergency repairs?",
+    "expected_answer": "Within 24 hours.",
+    "expected_source_doc": "sample_lease_agreement.pdf",
+    "expected_clause_number": "6",
+    "expected_keywords": [
+      "24"
+    ]
+  },
+  {
+    "id": "lease_07",
+    "question": "What fee applies if the tenant ends the lease early?",
+    "expected_answer": "A fee equal to two months' rent.",
+    "expected_source_doc": "sample_lease_agreement.pdf",
+    "expected_clause_number": "9",
+    "expected_keywords": [
+      "(2)"
+    ]
+  }
+]

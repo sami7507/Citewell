@@ -1,232 +1,216 @@
-<div align="center">
+# Citewell
 
-# ⚖️ ParaLex
+**Ask questions about contracts, leases, loan agreements and financial filings. Every answer is cited to the exact clause, table or page it came from.**
 
-**A retrieval-augmented AI assistant for legal and financial documents**
+![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)
+![Streamlit](https://img.shields.io/badge/streamlit-1.38%2B-FF4B4B.svg)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-Ask questions about contracts, leases, loan agreements, and financial filings — every answer is grounded in the source document and cited to its exact clause, table, or page.
+Citewell is a retrieval-augmented generation (RAG) application for dense, high-stakes documents, where a wrong answer is worse than no answer. It answers only from the documents you give it, says so when the answer is not there, and shows the passage behind every claim so you can check it yourself.
 
-[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/)
-[![Streamlit](https://img.shields.io/badge/streamlit-1.38-FF4B4B.svg)](https://streamlit.io/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-
-[Live Demo](#) · [Report a Bug](#) · [Author](#author)
-
-</div>
-
----
-
-## Project Overview
-
-ParaLex is a Retrieval-Augmented Generation (RAG) system built to answer questions over dense, high-stakes documents — the kind of documents where a wrong answer is worse than no answer at all. It's not a wrapper around a chat API: it's a full pipeline with clause-aware chunking for legal text, real table extraction for financial statements, a measured retrieval and faithfulness evaluation layer, and a production-style Streamlit interface with document upload and feedback logging.
-
-This project was built end-to-end — ingestion, chunking, embeddings, vector search, generation, evaluation, and UI — with every design decision backed by either a measured result or a documented tradeoff. Where something broke against a real document, the fix and its root cause are documented below rather than glossed over.
+Everything runs locally and for free except the language model call, which uses Groq's free tier.
 
 ## Features
 
-- **Clause-aware chunking** for legal documents — numbered clauses (leases, loan agreements) are kept intact as single retrievable units instead of being split mid-sentence by naive fixed-size chunking.
-- **Real table extraction** for financial documents, using `pdfplumber` rather than flat text extraction, which preserves row/column relationships that plain text extraction destroys.
-- **GAAP / Non-GAAP disambiguation** — when a document places two structurally identical tables side by side (a common real-world pattern), ParaLex detects the heading above each table and cites them distinctly, rather than presenting two different, both-correct figures as an unexplained conflict.
-- **Document upload** — query your own PDF or DOCX files in-session, with zero permanent storage, alongside a built-in demo corpus (lease, loan agreement, 10-K excerpt, financial statements).
-- **Every answer is cited** to its source document, page, clause, or table — with an optional "evidence" view showing the exact retrieved text behind each citation, distinguishing what the answer actually used from what was retrieved but not needed.
-- **Feedback logging** — thumbs up/down on any answer, logged with the full question, answer, sources, and retrieval settings for later analysis.
-- **A real evaluation layer** — retrieval quality (MRR, Recall@k, Precision@k) and answer faithfulness (LLM-as-judge) are measured against a hand-labeled test set, not asserted.
+- **Cited answers.** Each answer carries numbered citation marks that map to the source passages shown underneath, separated into passages the answer used and passages that were only retrieved.
+- **Clause-aware chunking** for legal text. Numbered clauses stay whole instead of being cut mid-sentence by fixed-size splitting.
+- **Real table extraction** for financial statements (`pdfplumber`), preserving row and column relationships that flat text extraction destroys.
+- **GAAP / Non-GAAP disambiguation.** Headings above tables are detected and appear in citations, so two correct but different figures are not mistaken for a conflict.
+- **Bring your own documents.** Upload PDF or Word files and query them in the same session. Nothing is stored.
+- **Safe by default.** Uploads are validated (type, size, count, file signature, filename), model output is HTML-escaped, the index is stored as JSON (never pickle), and the model is told to treat document text as data, not instructions.
+- **Friendly failures.** Bad PDFs, password-protected files, scanned images, rate limits and bad API keys each produce a specific message, never a traceback.
+- **Feedback logging** to SQLite, with the full question, answer, sources and retrieval settings for later analysis.
+- **A real evaluation layer.** Retrieval (MRR, Recall@k, Precision@k) and answer faithfulness (LLM-as-judge) are measured against a hand-labelled set.
 
-## Architecture — How It Works
+## Quick start
 
-```
-                         ┌─────────────────┐
-   PDF / DOCX  ───────►  │   Ingestion     │  pypdf (prose) + pdfplumber (tables)
-                         └────────┬────────┘
-                                  │
-                         ┌────────▼────────┐
-                         │    Chunking     │  clause-aware split (legal) +
-                         │                 │  table extraction with heading detection
-                         └────────┬────────┘
-                                  │
-                         ┌────────▼────────┐
-                         │   Embedding     │  sentence-transformers (local, free)
-                         └────────┬────────┘
-                                  │
-                         ┌────────▼────────┐
-                         │  FAISS Index    │  exact cosine similarity search
-                         └────────┬────────┘
-                                  │
-        Question  ───────►  ┌────▼────┐
-                             │Retrieval│  top-k + optional relevance filter
-                             └────┬────┘
-                                  │
-                         ┌────────▼────────┐
-                         │   Generation    │  Groq LLM, strict grounding prompt
-                         │                 │  (answers only from retrieved context)
-                         └────────┬────────┘
-                                  │
-                             Cited Answer
-```
+You need Python 3.11 and a free Groq API key from <https://console.groq.com/keys>.
 
-Every stage above is independently tested. The chunking and table-extraction stages in particular were validated against a real, unmodified annual report (not just synthetic test data) — see [Findings from Real-World Testing](#findings-from-real-world-testing) below.
+**Windows (Anaconda Prompt)**
 
-## Tech Stack
+```bat
+git clone https://github.com/sami7507/citewell.git
+cd citewell
 
-| Layer | Choice | Why |
-|---|---|---|
-| Orchestration | Custom pipeline (`src/pipeline.py`) | Full control over the ingest → chunk → embed → retrieve → generate flow, rather than a framework's opinionated chain abstractions |
-| Chunking | `langchain-text-splitters` + custom clause-aware/table logic | Recursive splitting as a baseline; clause-aware regex splitting for legal text, since naive splitting measurably fragments legal clauses |
-| Embeddings | `sentence-transformers/all-MiniLM-L6-v2` | Free, local, 384-dim. Benchmarked against `all-mpnet-base-v2` (768-dim) — both achieved identical Recall@k, but MiniLM embedded **6.3× faster**, so the larger model wasn't worth the cost here |
-| Vector store | FAISS (`IndexFlatIP`, exact search) | Corpus size doesn't need approximate search — exact search is fast enough and has zero accuracy loss at this scale |
-| LLM | Groq (`openai/gpt-oss-120b`) | Free tier, fast inference, strong enough quality for grounded document Q&A |
-| Table parsing | `pdfplumber` | Detects real grid structure — `pypdf`'s flat text extraction scrambles table rows/columns into disconnected lines |
-| Frontend | Streamlit | Chat interface, document upload, feedback logging, all in pure Python |
-| Testing | `pytest` | 150+ tests across ingestion, chunking, retrieval, generation, evaluation, and the app layer |
-
-## Folder Structure
-
-```
-paralex/
-├── data/
-│   ├── sample_docs/          # Demo corpus: lease, loan, 10-K excerpt, financial statements
-│   └── processed/            # Generated FAISS index + feedback.db (gitignored)
-├── src/
-│   ├── ingestion/            # PDF/DOCX loading + table extraction
-│   ├── chunking/             # Clause-aware and recursive chunking strategies
-│   ├── embeddings/           # Embedding model wrapper
-│   ├── vectorstore/          # FAISS wrapper (build, save, load, search)
-│   ├── retrieval/            # Query → embed → search → ranked results
-│   ├── generation/           # Grounded prompt construction + Groq LLM call
-│   ├── config.py             # All tunable settings, env-driven
-│   └── pipeline.py           # Orchestrates the full ingest → index flow
-├── evaluation/
-│   ├── test_sets/            # 23 hand-labeled Q&A pairs across all demo documents
-│   ├── metrics.py            # MRR, Recall@k, Precision@k
-│   ├── faithfulness.py       # LLM-as-judge answer faithfulness scoring
-│   ├── embedding_comparison.py
-│   └── run_eval.py           # One command, full evaluation report
-├── app/
-│   ├── streamlit_app.py      # UI entrypoint
-│   ├── app_logic.py          # Testable business logic (upload handling, secrets)
-│   ├── styles.py             # Custom theme + citation/evidence rendering
-│   └── feedback.py           # SQLite-backed feedback logging
-├── tests/                    # 150+ tests
-├── scripts/                  # Dev utilities (sample document generation)
-├── run_pipeline.py           # CLI entrypoint (no UI needed)
-├── requirements.txt
-└── .env.example
-```
-
-## Installation & Setup
-
-**Prerequisites:** Python 3.11, a free [Groq API key](https://console.groq.com).
-
-```bash
-git clone https://github.com/samikhan07h/paralex.git
-cd paralex
-
-python -m venv venv
-# Windows: venv\Scripts\activate
-# macOS/Linux: source venv/bin/activate
-
+conda create -n citewell python=3.11 -y
+conda activate citewell
 pip install -r requirements.txt
 
-cp .env.example .env
-# then edit .env and add your GROQ_API_KEY
+copy config\.env.example .env
+run_app.bat
 ```
 
-## Usage
+**macOS / Linux**
 
-**Command line** (no UI, fastest way to verify the pipeline works):
 ```bash
-python run_pipeline.py --build                        # builds the demo index
-python run_pipeline.py --ask "What is the monthly rent?"
+git clone https://github.com/sami7507/citewell.git
+cd citewell
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+
+cp config/.env.example .env
+./run_app.sh
 ```
 
-**Web app:**
+The app opens at <http://localhost:8501>. You do not have to edit `.env`: if no key is configured, the page asks you to paste one for the session. The first run downloads the embedding model (about 90 MB) and builds the sample index.
+
+> **Sample documents.** Put your PDFs in `storage/sample_docs/` (or run `python scripts/generate_sample_docs.py` to create synthetic ones; it needs `pip install reportlab`).
+
+## Using the app
+
+1. Choose **Sample documents** (a lease, a loan agreement, a 10-K excerpt and financial statements) or **My documents** to upload your own.
+2. Ask a question, or click one of the suggested examples.
+3. Read the answer. The small numbered marks match the passages under **Sources**, which show exactly what the answer was based on.
+4. Mark the answer **Helpful** or **Not helpful**.
+
+## Command line
+
 ```bash
-streamlit run app/streamlit_app.py
-```
-Opens a chat interface at `localhost:8501` with two modes: query the built-in demo documents, or upload your own PDF/DOCX to query instead.
-
-**Run the test suite:**
-```bash
-pytest tests/ -v
+python scripts/build_index.py                        # rebuild the sample index
+python scripts/cli.py --ask "What is the monthly rent?"
+python scripts/run_eval.py                           # retrieval + faithfulness evaluation (uses Groq)
+python scripts/run_embedding_comparison.py           # compare embedding models
 ```
 
-**Run the full evaluation** (retrieval quality + faithfulness, real Groq API calls):
-```bash
-python -m evaluation.run_eval
+## Project structure
+
+```
+citewell/
+├── backend/citewell/          # the Python package: all business logic, no UI
+│   ├── config.py              # every setting, read from the environment
+│   ├── pipeline.py            # ingest -> chunk -> embed -> index, and answer_question()
+│   ├── ingestion/             # PDF / DOCX loaders, table extraction
+│   ├── chunking/              # clause-aware and recursive chunkers
+│   ├── embeddings/            # local sentence-transformers wrapper
+│   ├── vectorstore/           # FAISS store with safe JSON persistence
+│   ├── retrieval/             # query -> embed -> search -> ranked passages
+│   ├── generation/            # grounded prompt, Groq call, error handling
+│   ├── services/              # uploads, sample index, secrets bridging
+│   ├── storage/               # SQLite feedback database
+│   ├── evaluation/            # metrics, faithfulness judge, eval runner, test sets
+│   └── utils/                 # rate-limit backoff
+├── frontend/                  # Streamlit UI (app.py, theme.py, components.py)
+├── storage/                   # sample_docs/, generated index, database, eval reports
+├── config/                    # .env.example, secrets.toml.example
+├── scripts/                   # CLI, evaluation and sample-data tools
+├── tests/                     # 170+ tests
+├── .streamlit/config.toml     # Streamlit theme and server settings
+├── Dockerfile, requirements*.txt, pytest.ini, .github/workflows/ci.yml
 ```
 
-## Evaluation Results
+The backend never imports Streamlit, and the frontend contains only presentation. The same `pipeline` functions serve the app, the command line, the evaluation harness and the tests.
 
-Measured against a hand-labeled set of 23 questions spanning all four demo documents (lease, loan agreement, 10-K excerpt, financial statements).
+## Configuration
 
-**Retrieval quality** (`top_k=2`, chosen empirically — see below):
+All settings are environment variables (in `.env`, or Streamlit secrets when deployed). The most useful:
 
-| Metric | Score |
+| Variable | Default | Purpose |
+|---|---|---|
+| `GROQ_API_KEY` | none | Free key from console.groq.com |
+| `GROQ_MODEL` | `openai/gpt-oss-120b` | Language model served by Groq |
+| `EMBEDDING_MODEL` | `sentence-transformers/all-MiniLM-L6-v2` | Local embedding model |
+| `TOP_K` / `UPLOAD_TOP_K` | `2` / `4` | Passages per answer for samples / uploads |
+| `MAX_UPLOAD_FILES`, `MAX_UPLOAD_MB` | `5`, `50` | Upload limits |
+| `SAMPLE_DOCS_DIR`, `VECTORSTORE_DIR`, `DATABASE_PATH` | under `storage/` | Where data lives |
+
+See `config/.env.example` for the full list. Changing the embedding model rebuilds the sample index automatically.
+
+## How it works
+
+```
+ PDF / DOCX ──► Ingestion ──► Chunking ──► Embedding ──► FAISS index
+   pypdf, pdfplumber   clause-aware +     MiniLM (local)   exact cosine
+   python-docx         table chunks                              │
+                                                                 ▼
+ Question ──► embed ──► top-k passages ──► Groq LLM (strict grounding prompt) ──► cited answer
+```
+
+More detail, including the design decisions and their trade-offs, is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Evaluation
+
+These figures were measured on the project's hand-labelled set (23 questions across the four sample documents) before the rebuild. The retrieval and chunking logic is unchanged, but the generation prompt gained one extra safety rule, so **re-run `python scripts/run_eval.py` to refresh the faithfulness numbers on your machine.**
+
+| Retrieval (`top_k=2`) | Score |
 |---|---|
 | MRR | 0.917 |
 | Recall@2 | 1.000 |
 | Precision@2 | 0.500 |
 
-`top_k` was tested at 1, 2, 4, and 6. Recall and MRR plateau at `k=2` — every correct source is found within the top 2 results, and going higher only dilutes precision with irrelevant chunks. `k=2` is the smallest value that achieves maximum retrieval quality on this corpus.
-
-**Answer faithfulness** (LLM-as-judge, scoring whether every claim in an answer is actually supported by its retrieved context):
-
-| Metric | Score |
+| Answer faithfulness (LLM-as-judge) | Score |
 |---|---|
-| Average faithfulness | 4.83 / 5 |
+| Average | 4.83 / 5 |
 | Faithful rate | 94.4% (17 of 18 answers) |
 
-The one flagged answer wasn't a hallucination — it was a citation attribution mix-up between two adjacent clauses covering related topics (both facts were correct; the labels were swapped). Documented as a known, narrow failure mode rather than smoothed over.
+`top_k` was tested at 1, 2, 4 and 6; recall and MRR plateau at 2, and higher values only dilute precision. The one flagged answer was a citation mix-up between two adjacent clauses, not a hallucination.
 
-**Embedding model comparison:**
-
-| Model | Dim | MRR | Recall@k | Embed time |
+| Embedding model | Dim | MRR | Recall@k | Embed time |
 |---|---|---|---|---|
-| all-MiniLM-L6-v2 | 384 | 0.891 | 1.000 | 0.63s |
-| all-mpnet-base-v2 | 768 | 0.935 | 1.000 | 3.93s |
+| all-MiniLM-L6-v2 | 384 | 0.891 | 1.000 | 0.63 s |
+| all-mpnet-base-v2 | 768 | 0.935 | 1.000 | 3.93 s |
 
-The larger model's modest MRR gain (+0.043) didn't justify a 6.3× slowdown given both achieved perfect recall — MiniLM was kept as the default.
+MiniLM is the default: the larger model's small MRR gain did not justify being about 6x slower when both achieve perfect recall.
 
-## Findings from Real-World Testing
-
-Everything above was validated against a small, controlled demo corpus. Testing the "upload your own document" feature against a real, unmodified 176-page annual report surfaced three genuine issues that the demo corpus never exercised — each traced to its actual root cause and fixed, not patched around:
-
-1. **Split currency columns.** Real financial tables often typeset the `$` symbol in its own PDF table column, separate from the number. Naive extraction produced a table full of ghost columns and split every figure into two cells (`"$"`, `"1,330,383"`). Fixed by detecting and merging any column consisting entirely of bare currency symbols.
-
-2. **GAAP vs. Non-GAAP tables.** The same document placed two structurally identical financial tables on one page, distinguished only by a heading ("GAAP" / "Non-GAAP") sitting above each — invisible to a table-grid parser. Without it, two different, both-correct figures looked like an unexplained data conflict. Fixed by detecting short, label-like text immediately above each table's bounding box and surfacing it directly in citations (`Table 1 (GAAP), page 24`).
-
-3. **Unit fabrication risk.** Real financial statements often state their unit convention ("in thousands") once, in a footnote elsewhere in the document, and never repeat it near every table. An LLM reading a bare table figure can invent an incorrect scale word. Mitigated with an explicit generation-prompt rule: never invent a scale for a number unless that exact unit appears in the same excerpt, and prefer an explicitly-scaled figure from prose when one is available.
-
-## Known Limitations
-
-- **Retrieval can favor prose over tables.** A full sentence with high lexical overlap to a query can occasionally outrank the structurally correct table, even after enriching table captions with line-item names. Mitigated, not eliminated, by retrieving more than one chunk per query.
-- **Feedback and the uploaded-document index are ephemeral on free-tier deployment.** Streamlit Community Cloud's storage resets on app restart — feedback logged and documents uploaded in a session won't survive a redeploy.
-- **No reranking or cross-encoder stage.** Retrieval is single-pass dense similarity search. A production system handling much larger or more heterogeneous document sets would likely benefit from a reranking step.
-
-## Future Improvements
-
-- Cross-encoder reranking for retrieval precision on larger, more diverse document sets
-- Persistent storage for feedback and uploaded-document indexes (e.g. a hosted database instead of local SQLite/FAISS)
-- Multi-document cross-referencing (asking questions that span more than one uploaded document)
-- Automatic promotion of well-answered, well-rated questions into the evaluation set over time
+The labelled set lives in `backend/citewell/evaluation/test_sets/`. The repository ships a small `starter_*.json` placeholder; replace it with your own labels (see the README in that folder).
 
 ## Testing
 
-150+ tests across every layer of the pipeline: ingestion, chunking, embeddings, vector store, retrieval, generation, evaluation metrics, faithfulness scoring, table extraction, and the Streamlit app's business logic. Network-independent tests (the majority) run without any API key; a smaller set of integration tests exercise the real Groq API and are skipped automatically if `GROQ_API_KEY` isn't set.
+```bash
+pip install -r requirements-dev.txt
+pytest -m "not integration"      # fast, offline tests
+pytest                           # everything, including tests that download models / call the API
+```
+
+Tests that need the embedding model or a real `GROQ_API_KEY` are marked `integration`; the live-API tests skip themselves when no key is set.
+
+## Deployment
+
+**Streamlit Community Cloud:** push the repository, set the main file to `frontend/app.py`, and paste `config/secrets.toml.example` (with your real key) into the app's Secrets. Keep `storage/sample_docs/` in the repository.
+
+**Docker:**
 
 ```bash
-pytest tests/ -v
+docker build -t citewell .
+docker run -p 8501:8501 -e GROQ_API_KEY=your_key citewell
 ```
+
+## Security and privacy
+
+- Uploaded files are processed in memory and a temporary directory that is deleted immediately; they are never stored.
+- A key pasted into the page lives only in that browser session's memory.
+- The vector index is JSON plus a FAISS file. Earlier versions used pickle, which can execute code when loaded; old pickle indexes are refused and rebuilt.
+- Answers and passages are HTML-escaped before display.
+- Retrieved text is passed to the model as untrusted data, with an explicit rule not to follow instructions found inside it.
+
+## Findings from real-world testing
+
+Testing against a real, unmodified 176-page annual report exposed three problems the sample corpus never exercised. Each was traced to its root cause and fixed:
+
+1. **Split currency columns.** The `$` sign sat in its own PDF column, so every figure became two cells. Fixed by detecting and merging columns made up only of currency symbols.
+2. **GAAP vs. Non-GAAP tables.** Two identical-looking tables differed only by a heading above each. Fixed by detecting short label-like text above each table and surfacing it in citations (`Table 1 (GAAP), page 24`).
+3. **Unit fabrication.** Units ("in thousands") are often stated once elsewhere, so a model can invent a scale word for a bare number. Mitigated with an explicit prompt rule never to invent a scale.
+
+## Known limitations
+
+- **No OCR.** Scanned, image-only PDFs are detected and reported but not read.
+- **Prose on table pages.** Pages that contain a table are indexed through the table extraction only, so ordinary text on the same page is not indexed separately.
+- **Retrieval can favour prose over tables** when a sentence closely echoes the question. Retrieving more than one passage mitigates it.
+- **No reranking stage.** Retrieval is single-pass dense search; a cross-encoder reranker would help on larger corpora.
+- **Free-tier storage is ephemeral.** On Streamlit Community Cloud, feedback and the index reset when the app restarts.
+
+## Roadmap
+
+- Cross-encoder reranking
+- OCR for scanned documents
+- Multi-document comparison questions
+- A hosted database for feedback, and promotion of well-rated answers into the evaluation set
+- An optional fully local language model backend
 
 ## Author
 
-**Md Sami Ahmad**
+**Sami**
 
-📧 [samikhan4jnu@gmail.com](mailto:samikhan4jnu@gmail.com)
-🔗 GitHub · LinkedIn
+Email: [sami757007@gmail.com](mailto:sami757007@gmail.com)
+LinkedIn: [linkedin.com/in/sami7507](https://www.linkedin.com/in/sami7507)
 
----
-
-<div align="center">
-<sub>Built as an end-to-end demonstration of production RAG engineering — not a tutorial clone.</sub>
-</div>
+Released under the MIT License.

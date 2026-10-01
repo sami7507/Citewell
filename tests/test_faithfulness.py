@@ -15,7 +15,7 @@ import json
 import pytest
 from unittest.mock import MagicMock, patch
 
-from evaluation.faithfulness import (
+from citewell.evaluation.faithfulness import (
     FaithfulnessJudge,
     FaithfulnessResult,
     _extract_json_object,
@@ -57,7 +57,7 @@ def _mock_response(content: str):
 
 
 def test_judge_raises_clear_error_with_no_api_key(monkeypatch):
-    monkeypatch.setattr("evaluation.faithfulness.config.GROQ_API_KEY", "")
+    monkeypatch.setattr("citewell.evaluation.faithfulness.config.GROQ_API_KEY", "")
     with pytest.raises(ValueError, match="No Groq API key found"):
         FaithfulnessJudge(api_key="")
 

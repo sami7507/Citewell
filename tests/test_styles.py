@@ -1,12 +1,12 @@
 """
-Tests for app/styles.py
+Tests for frontend/components.py
 
 render_source_chips() is a pure function (no Streamlit calls), so it's
 tested directly on its HTML output string — no browser or Streamlit
 runtime needed.
 """
 
-from app.styles import render_source_chips, _escape
+from frontend.components import render_source_chips, _escape
 
 
 def test_render_source_chips_wraps_each_source_in_a_chip_span():
@@ -48,7 +48,7 @@ def test_escape_handles_plain_text_unchanged():
 # --- safe_markdown_text ---
 
 def test_safe_markdown_text_escapes_single_dollar_sign():
-    from app.styles import safe_markdown_text
+    from frontend.components import safe_markdown_text
     assert safe_markdown_text("The rent is $2,400.") == "The rent is \\$2,400."
 
 
@@ -58,7 +58,7 @@ def test_safe_markdown_text_escapes_multiple_dollar_signs():
     one string get interpreted by st.markdown() as LaTeX math delimiters,
     garbling the text between them. Both must be escaped.
     """
-    from app.styles import safe_markdown_text
+    from frontend.components import safe_markdown_text
     text = "Revenue declined from $2.29 billion in 2023 to $1.33 billion in 2024."
     result = safe_markdown_text(text)
     assert result.count("\\$") == 2
@@ -66,7 +66,7 @@ def test_safe_markdown_text_escapes_multiple_dollar_signs():
 
 
 def test_safe_markdown_text_leaves_text_without_dollar_signs_unchanged():
-    from app.styles import safe_markdown_text
+    from frontend.components import safe_markdown_text
     text = "No pets are permitted without written consent."
     assert safe_markdown_text(text) == text
 
@@ -74,7 +74,7 @@ def test_safe_markdown_text_leaves_text_without_dollar_signs_unchanged():
 # --- render_evidence_panel ---
 
 def test_render_evidence_panel_includes_label_and_text():
-    from app.styles import render_evidence_panel
+    from frontend.components import render_evidence_panel
     evidence = [{"label": "Source 1: lease.pdf, Clause 3 (RENT), page 1", "text": "Tenant shall pay $2,400/month."}]
     html = render_evidence_panel(evidence)
 
@@ -84,7 +84,7 @@ def test_render_evidence_panel_includes_label_and_text():
 
 
 def test_render_evidence_panel_handles_multiple_sources():
-    from app.styles import render_evidence_panel
+    from frontend.components import render_evidence_panel
     evidence = [
         {"label": "Source 1: a.pdf, page 1", "text": "First excerpt."},
         {"label": "Source 2: b.pdf, page 2", "text": "Second excerpt."},
@@ -97,13 +97,13 @@ def test_render_evidence_panel_handles_multiple_sources():
 
 
 def test_render_evidence_panel_handles_empty_list():
-    from app.styles import render_evidence_panel
+    from frontend.components import render_evidence_panel
     html = render_evidence_panel([])
     assert "No evidence available" in html
 
 
 def test_render_evidence_panel_truncates_long_excerpts_at_word_boundary():
-    from app.styles import render_evidence_panel
+    from frontend.components import render_evidence_panel
     long_text = "word " * 200  # far longer than the default 400-char limit
     evidence = [{"label": "Source 1: doc.pdf, page 1", "text": long_text}]
 
@@ -116,7 +116,7 @@ def test_render_evidence_panel_truncates_long_excerpts_at_word_boundary():
 
 
 def test_render_evidence_panel_escapes_html_in_excerpt_text():
-    from app.styles import render_evidence_panel
+    from frontend.components import render_evidence_panel
     evidence = [{"label": "Source 1: doc.pdf, page 1", "text": "Contains <script>alert('x')</script> text."}]
     html = render_evidence_panel(evidence)
 
@@ -127,25 +127,25 @@ def test_render_evidence_panel_escapes_html_in_excerpt_text():
 # --- extract_cited_source_numbers ---
 
 def test_extract_cited_source_numbers_finds_single_citation():
-    from app.styles import extract_cited_source_numbers
+    from frontend.components import extract_cited_source_numbers
     answer = "The rent is $2,400/month (Source 1)."
     assert extract_cited_source_numbers(answer) == {1}
 
 
 def test_extract_cited_source_numbers_finds_multiple_citations():
-    from app.styles import extract_cited_source_numbers
+    from frontend.components import extract_cited_source_numbers
     answer = "Revenue was $1.33 billion (Source 4), down from $2.29 billion (Source 2)."
     assert extract_cited_source_numbers(answer) == {2, 4}
 
 
 def test_extract_cited_source_numbers_returns_empty_set_when_no_citations():
-    from app.styles import extract_cited_source_numbers
+    from frontend.components import extract_cited_source_numbers
     answer = "The retrieved documents don't contain enough information to answer this question."
     assert extract_cited_source_numbers(answer) == set()
 
 
 def test_extract_cited_source_numbers_deduplicates_repeated_citations():
-    from app.styles import extract_cited_source_numbers
+    from frontend.components import extract_cited_source_numbers
     answer = "The deposit is $2,400 (Source 1), returned within 30 days (Source 1)."
     assert extract_cited_source_numbers(answer) == {1}
 
@@ -153,7 +153,7 @@ def test_extract_cited_source_numbers_deduplicates_repeated_citations():
 # --- render_evidence_panel: used vs. other retrieved evidence ---
 
 def test_render_evidence_panel_marks_cited_source_as_used():
-    from app.styles import render_evidence_panel
+    from frontend.components import render_evidence_panel
     evidence = [
         {"label": "Source 1: a.pdf, page 1", "text": "First."},
         {"label": "Source 2: b.pdf, page 2", "text": "Second."},
@@ -168,7 +168,7 @@ def test_render_evidence_panel_marks_cited_source_as_used():
 
 
 def test_render_evidence_panel_puts_used_sources_before_others():
-    from app.styles import render_evidence_panel
+    from frontend.components import render_evidence_panel
     evidence = [
         {"label": "Source 1: a.pdf, page 1", "text": "First excerpt marker AAA."},
         {"label": "Source 2: b.pdf, page 2", "text": "Second excerpt marker BBB."},
@@ -180,7 +180,7 @@ def test_render_evidence_panel_puts_used_sources_before_others():
 
 def test_render_evidence_panel_with_no_cited_indices_shows_flat_list():
     """Backward-compatible behavior: omitting cited_indices renders everything as before, no grouping."""
-    from app.styles import render_evidence_panel
+    from frontend.components import render_evidence_panel
     evidence = [{"label": "Source 1: a.pdf, page 1", "text": "Some text."}]
     html = render_evidence_panel(evidence)
 
@@ -189,7 +189,7 @@ def test_render_evidence_panel_with_no_cited_indices_shows_flat_list():
 
 
 def test_render_evidence_panel_all_sources_cited_has_no_other_section():
-    from app.styles import render_evidence_panel
+    from frontend.components import render_evidence_panel
     evidence = [{"label": "Source 1: a.pdf, page 1", "text": "Some text."}]
     html = render_evidence_panel(evidence, cited_indices={1})
 

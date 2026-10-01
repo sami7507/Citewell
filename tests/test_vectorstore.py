@@ -15,8 +15,8 @@ import pytest
 import tempfile
 import shutil
 
-from src.chunking.chunker import Chunk
-from src.vectorstore.store import VectorStore
+from citewell.chunking.chunker import Chunk
+from citewell.vectorstore.store import VectorStore
 
 
 def _make_fake_chunks_and_embeddings(n=10, dim=384, seed=42):

@@ -10,15 +10,20 @@ fast and network-independent, while this one proves the whole Phase 1
 pipeline actually works together end-to-end, not just in isolated pieces.
 """
 
+import pytest
+
+
 from pathlib import Path
 
-from src.ingestion.loaders import load_documents_from_dir
-from src.chunking.chunker import clause_aware_chunk
-from src.embeddings.embedder import Embedder
-from src.vectorstore.store import VectorStore
-from src.retrieval.retriever import Retriever
+from citewell.ingestion.loaders import load_documents_from_dir
+from citewell.chunking.chunker import clause_aware_chunk
+from citewell.embeddings.embedder import Embedder
+from citewell.vectorstore.store import VectorStore
+from citewell.retrieval.retriever import Retriever
 
-SAMPLE_DIR = Path(__file__).resolve().parent.parent / "data" / "sample_docs"
+pytestmark = pytest.mark.integration
+
+SAMPLE_DIR = Path(__file__).resolve().parent.parent / "storage" / "sample_docs"
 
 
 def test_full_pipeline_returns_semantically_relevant_chunk():

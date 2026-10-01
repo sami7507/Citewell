@@ -4,16 +4,16 @@ Tests for src/ingestion/table_extractor.py
 
 from pathlib import Path
 
-from src.ingestion.table_extractor import (
+from citewell.ingestion.table_extractor import (
     extract_tables_from_pdf,
     extract_tables_from_dir,
     _table_to_markdown,
     _clean_cell,
 )
-from src.ingestion.loaders import load_pdf
-from src.chunking.chunker import Chunk
+from citewell.ingestion.loaders import load_pdf
+from citewell.chunking.chunker import Chunk
 
-SAMPLE_DIR = Path(__file__).resolve().parent.parent / "data" / "sample_docs"
+SAMPLE_DIR = Path(__file__).resolve().parent.parent / "storage" / "sample_docs"
 FINANCIAL_PDF = SAMPLE_DIR / "sample_financial_statements.pdf"
 
 
@@ -146,7 +146,7 @@ def test_extract_tables_from_dir_finds_tables_across_pdfs():
 # --- _find_heading_above_table: real-world GAAP/Non-GAAP finding (Phase 4) ---
 
 def test_find_heading_above_table_detects_short_label():
-    from src.ingestion.table_extractor import _find_heading_above_table
+    from citewell.ingestion.table_extractor import _find_heading_above_table
     from unittest.mock import MagicMock
 
     mock_page = MagicMock()
@@ -165,7 +165,7 @@ def test_find_heading_above_table_strips_footnote_digit():
     (observed directly in a real annual report: "Non-GAAP1" for a
     footnoted "Non-GAAP" heading) — this must be cleaned up.
     """
-    from src.ingestion.table_extractor import _find_heading_above_table
+    from citewell.ingestion.table_extractor import _find_heading_above_table
     from unittest.mock import MagicMock
 
     mock_page = MagicMock()
@@ -184,7 +184,7 @@ def test_find_heading_above_table_rejects_full_sentences():
     prose, not a caption — must NOT be treated as a heading, or every
     table following a paragraph would get a meaningless "heading".
     """
-    from src.ingestion.table_extractor import _find_heading_above_table
+    from citewell.ingestion.table_extractor import _find_heading_above_table
     from unittest.mock import MagicMock
 
     mock_page = MagicMock()
@@ -199,7 +199,7 @@ def test_find_heading_above_table_rejects_full_sentences():
 
 def test_find_heading_above_table_returns_empty_when_table_is_at_region_top():
     """If the table starts right at the search region's top (no gap above it), there's nothing to search."""
-    from src.ingestion.table_extractor import _find_heading_above_table
+    from citewell.ingestion.table_extractor import _find_heading_above_table
     from unittest.mock import MagicMock
 
     mock_page = MagicMock()
@@ -216,7 +216,7 @@ def test_merge_currency_symbol_columns_merges_dollar_sign_into_value():
     report table: the currency symbol sits in its own column, separate
     from the numeric value, for every data row.
     """
-    from src.ingestion.table_extractor import _merge_currency_symbol_columns
+    from citewell.ingestion.table_extractor import _merge_currency_symbol_columns
     raw_table = [
         ["", "", "2024", "", "2023"],
         ["Revenue", "$", "1,330,383", "$", "2,290,786"],
@@ -234,7 +234,7 @@ def test_merge_currency_symbol_columns_handles_rows_without_dollar_signs():
     treat that column as a symbol column (since '' counts as "no symbol
     present", not "a real value"), producing a clean percentage cell.
     """
-    from src.ingestion.table_extractor import _merge_currency_symbol_columns
+    from citewell.ingestion.table_extractor import _merge_currency_symbol_columns
     raw_table = [
         ["", "", "2024", "", "2023"],
         ["Revenue", "$", "1,330,383", "$", "2,290,786"],
@@ -251,7 +251,7 @@ def test_merge_currency_symbol_columns_leaves_normal_tables_unchanged():
     "$3,150" style values via reportlab — the merge function must be a
     complete no-op for tables that were never split this way.
     """
-    from src.ingestion.table_extractor import _merge_currency_symbol_columns
+    from citewell.ingestion.table_extractor import _merge_currency_symbol_columns
     raw_table = [
         ["Line Item", "FY2024", "FY2023"],
         ["Net revenue", "$3,150", "$2,780"],
@@ -266,7 +266,7 @@ def test_merge_currency_symbol_columns_does_not_merge_a_column_with_real_mixed_v
     bare currency symbol — a column containing a real value anywhere
     must never be merged away, even if some rows in it happen to be empty.
     """
-    from src.ingestion.table_extractor import _merge_currency_symbol_columns
+    from citewell.ingestion.table_extractor import _merge_currency_symbol_columns
     raw_table = [
         ["Label", "Note", "Value"],
         ["Row A", "see note 1", "$100"],
@@ -277,7 +277,7 @@ def test_merge_currency_symbol_columns_does_not_merge_a_column_with_real_mixed_v
 
 
 def test_merge_currency_symbol_columns_handles_empty_table():
-    from src.ingestion.table_extractor import _merge_currency_symbol_columns
+    from citewell.ingestion.table_extractor import _merge_currency_symbol_columns
     assert _merge_currency_symbol_columns([]) == []
     assert _merge_currency_symbol_columns([[]]) == [[]]
 

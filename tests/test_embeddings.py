@@ -9,12 +9,14 @@ internet connection the first time they run.
 import numpy as np
 import pytest
 
-from src.ingestion.loaders import load_documents_from_dir
-from src.chunking.chunker import clause_aware_chunk
-from src.embeddings.embedder import Embedder
+from citewell.ingestion.loaders import load_documents_from_dir
+from citewell.chunking.chunker import clause_aware_chunk
+from citewell.embeddings.embedder import Embedder
 from pathlib import Path
 
-SAMPLE_DIR = Path(__file__).resolve().parent.parent / "data" / "sample_docs"
+pytestmark = pytest.mark.integration
+
+SAMPLE_DIR = Path(__file__).resolve().parent.parent / "storage" / "sample_docs"
 
 
 @pytest.fixture(scope="module")

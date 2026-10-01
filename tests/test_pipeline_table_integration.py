@@ -13,11 +13,11 @@ from pathlib import Path
 from unittest.mock import MagicMock
 import numpy as np
 
-from src.ingestion.loaders import load_documents_from_dir
-from src.ingestion.table_extractor import extract_tables_from_dir
-from src.chunking.chunker import clause_aware_chunk
+from citewell.ingestion.loaders import load_documents_from_dir
+from citewell.ingestion.table_extractor import extract_tables_from_dir
+from citewell.chunking.chunker import clause_aware_chunk
 
-SAMPLE_DIR = Path(__file__).resolve().parent.parent / "data" / "sample_docs"
+SAMPLE_DIR = Path(__file__).resolve().parent.parent / "storage" / "sample_docs"
 
 
 def test_table_pages_are_correctly_identified_for_exclusion():

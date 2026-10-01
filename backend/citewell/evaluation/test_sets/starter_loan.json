@@ -1,0 +1,52 @@
+[
+  {
+    "id": "loan_01",
+    "question": "What is the principal amount of the loan?",
+    "expected_answer": "$150,000.00.",
+    "expected_source_doc": "sample_loan_agreement.pdf",
+    "expected_clause_number": "1",
+    "expected_keywords": [
+      "$150,000.00"
+    ]
+  },
+  {
+    "id": "loan_02",
+    "question": "What is the interest rate on the loan?",
+    "expected_answer": "A fixed annual rate of 6.75%.",
+    "expected_source_doc": "sample_loan_agreement.pdf",
+    "expected_clause_number": "2",
+    "expected_keywords": [
+      "6.75%"
+    ]
+  },
+  {
+    "id": "loan_03",
+    "question": "How much is each monthly installment?",
+    "expected_answer": "$2,946.31 over 60 installments.",
+    "expected_source_doc": "sample_loan_agreement.pdf",
+    "expected_clause_number": "3",
+    "expected_keywords": [
+      "$2,946.31"
+    ]
+  },
+  {
+    "id": "loan_04",
+    "question": "Can the borrower prepay the loan without a penalty?",
+    "expected_answer": "Yes, at any time without penalty.",
+    "expected_source_doc": "sample_loan_agreement.pdf",
+    "expected_clause_number": "4",
+    "expected_keywords": [
+      "penalty"
+    ]
+  },
+  {
+    "id": "loan_05",
+    "question": "Which state's law governs the loan agreement?",
+    "expected_answer": "Delaware.",
+    "expected_source_doc": "sample_loan_agreement.pdf",
+    "expected_clause_number": "9",
+    "expected_keywords": [
+      "Delaware"
+    ]
+  }
+]

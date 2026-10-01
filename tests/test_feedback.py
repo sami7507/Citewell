@@ -1,5 +1,5 @@
 """
-Tests for app/feedback.py
+Tests for backend/citewell/storage/feedback.py
 
 Each test uses a fresh temporary database file, so tests never share
 state or depend on execution order — a real requirement here since
@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from app.feedback import FeedbackEntry, log_feedback, get_feedback_summary, get_all_feedback
+from citewell.storage.feedback import FeedbackEntry, log_feedback, get_feedback_summary, get_all_feedback
 
 
 @pytest.fixture

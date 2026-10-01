@@ -13,11 +13,11 @@ test catches that class of bug at the source, in the eval data itself.
 import pytest
 from pathlib import Path
 
-from evaluation.test_sets_loader import load_all_test_sets, EvalItem, _load_and_validate
-from src.ingestion.loaders import load_documents_from_dir
-from src.chunking.chunker import clause_aware_chunk
+from citewell.evaluation.test_sets_loader import load_all_test_sets, EvalItem, _load_and_validate
+from citewell.ingestion.loaders import load_documents_from_dir
+from citewell.chunking.chunker import clause_aware_chunk
 
-SAMPLE_DIR = Path(__file__).resolve().parent.parent / "data" / "sample_docs"
+SAMPLE_DIR = Path(__file__).resolve().parent.parent / "storage" / "sample_docs"
 
 
 def test_load_all_test_sets_returns_eval_items():

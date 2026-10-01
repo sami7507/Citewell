@@ -1,5 +1,5 @@
 """
-Tests for evaluation/rate_limit.py
+Tests for citewell/utils/rate_limit.py
 
 Constructs real groq.RateLimitError instances (with a minimal fake httpx
 response) to test backoff behavior precisely, without needing to trigger
@@ -12,7 +12,7 @@ import pytest
 from unittest.mock import MagicMock
 
 from groq import RateLimitError
-from evaluation.rate_limit import call_with_backoff, _parse_suggested_wait_seconds
+from citewell.utils.rate_limit import call_with_backoff, _parse_suggested_wait_seconds
 
 
 def _make_rate_limit_error(message: str) -> RateLimitError:

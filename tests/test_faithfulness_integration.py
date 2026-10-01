@@ -16,17 +16,19 @@ from pathlib import Path
 from dataclasses import dataclass, field
 from typing import List
 
-from src.ingestion.loaders import load_documents_from_dir
-from src.chunking.chunker import clause_aware_chunk
-from src.embeddings.embedder import Embedder
-from src.vectorstore.store import VectorStore
-from src.retrieval.retriever import Retriever
-from src.generation.generator import Generator
-from evaluation.test_sets_loader import load_all_test_sets
-from evaluation.faithfulness import FaithfulnessJudge
-from evaluation.rate_limit import call_with_backoff
+from citewell.ingestion.loaders import load_documents_from_dir
+from citewell.chunking.chunker import clause_aware_chunk
+from citewell.embeddings.embedder import Embedder
+from citewell.vectorstore.store import VectorStore
+from citewell.retrieval.retriever import Retriever
+from citewell.generation.generator import Generator
+from citewell.evaluation.test_sets_loader import load_all_test_sets
+from citewell.evaluation.faithfulness import FaithfulnessJudge
+from citewell.utils.rate_limit import call_with_backoff
 
-SAMPLE_DIR = Path(__file__).resolve().parent.parent / "data" / "sample_docs"
+pytestmark = pytest.mark.integration
+
+SAMPLE_DIR = Path(__file__).resolve().parent.parent / "storage" / "sample_docs"
 
 
 @dataclass

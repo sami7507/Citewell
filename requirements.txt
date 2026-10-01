@@ -1,18 +1,15 @@
-# --- Phase 1: Core RAG Pipeline ---
+# Citewell runtime dependencies.
 
-# PyTorch CPU-only build — keeps deployment lightweight on
-# CPU-only Streamlit Community Cloud.
+# PyTorch CPU-only build keeps installs small and works on machines without a GPU.
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch==2.4.0
 
-# PDF / document parsing
+# Document parsing
 pypdf==4.3.1
-python-docx==1.1.2
-pdfplumber==0.11.4  # table extraction (Phase 3) — see src/ingestion/table_extractor.py
+python-docx>=1.1.2
+pdfplumber==0.11.4
 
-# Chunking / orchestration
-langchain==0.2.16
-langchain-community==0.2.16
+# Chunking
 langchain-text-splitters==0.2.4
 
 # Embeddings (local, free)
@@ -21,17 +18,11 @@ sentence-transformers==3.0.1
 # Vector store
 faiss-cpu>=1.9.0
 
-# LLM provider (Groq — free tier, fast inference)
+# LLM provider (Groq free tier)
 groq>=1.0.0
 
-# Config / environment
+# Configuration
 python-dotenv==1.0.1
-pydantic==2.9.2
 
-# --- Later phases ---
-streamlit==1.38.0  # Phase 4 — UI
-# ragas==0.1.16   # Phase 2 — faithfulness/answer-relevance scoring
-# pandas==2.2.2   # Phase 2/3 — eval result tables
-
-# --- Dev / testing ---
-pytest==8.3.3
+# UI
+streamlit>=1.38,<2

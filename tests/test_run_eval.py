@@ -14,12 +14,12 @@ import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from evaluation.run_eval import run_full_evaluation, save_report, EvaluationReport, ItemReport
-from evaluation.test_sets_loader import EvalItem
-from evaluation.faithfulness import FaithfulnessResult
-from src.chunking.chunker import Chunk
-from src.retrieval.retriever import RetrievalResult
-from src.generation.generator import GeneratedAnswer
+from citewell.evaluation.run_eval import run_full_evaluation, save_report, EvaluationReport, ItemReport
+from citewell.evaluation.test_sets_loader import EvalItem
+from citewell.evaluation.faithfulness import FaithfulnessResult
+from citewell.chunking.chunker import Chunk
+from citewell.retrieval.retriever import RetrievalResult
+from citewell.generation.generator import GeneratedAnswer
 
 
 def _make_item(item_id, source, clause_number, question="a question?", expected="an answer"):
@@ -36,8 +36,8 @@ def _make_result(source, clause_number, text="chunk text", score=0.9):
     return RetrievalResult(chunk=chunk, score=score)
 
 
-@patch("evaluation.run_eval._build_pipeline")
-@patch("evaluation.run_eval.load_all_test_sets")
+@patch("citewell.evaluation.run_eval._build_pipeline")
+@patch("citewell.evaluation.run_eval.load_all_test_sets")
 def test_run_full_evaluation_produces_correct_aggregate_metrics(mock_load_items, mock_build_pipeline):
     items = [_make_item("q1", "lease.pdf", "3"), _make_item("q2", "loan.pdf", "2")]
     mock_load_items.return_value = items
@@ -67,8 +67,8 @@ def test_run_full_evaluation_produces_correct_aggregate_metrics(mock_load_items,
     assert len(report.items) == 2
 
 
-@patch("evaluation.run_eval._build_pipeline")
-@patch("evaluation.run_eval.load_all_test_sets")
+@patch("citewell.evaluation.run_eval._build_pipeline")
+@patch("citewell.evaluation.run_eval.load_all_test_sets")
 def test_run_full_evaluation_links_retrieval_rank_to_correct_item(mock_load_items, mock_build_pipeline):
     """
     The key correctness property of the report: each ItemReport's
@@ -105,8 +105,8 @@ def test_run_full_evaluation_links_retrieval_rank_to_correct_item(mock_load_item
     assert q2_report.retrieval_rank == 1
 
 
-@patch("evaluation.run_eval._build_pipeline")
-@patch("evaluation.run_eval.load_all_test_sets")
+@patch("citewell.evaluation.run_eval._build_pipeline")
+@patch("citewell.evaluation.run_eval.load_all_test_sets")
 def test_run_full_evaluation_flags_low_faithfulness_items(mock_load_items, mock_build_pipeline):
     items = [_make_item("q1", "lease.pdf", "3")]
     mock_load_items.return_value = items
