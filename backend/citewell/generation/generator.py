@@ -38,7 +38,7 @@ from groq import Groq
 
 from citewell import config
 from citewell.retrieval.retriever import RetrievalResult
-from citewell.utils.rate_limit import call_with_backoff
+from citewell.utils.rate_limit import call_with_retry
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +93,7 @@ class GeneratedAnswer:
 
     answer: str
     sources_used: List[str]  # e.g. ["Source 1: sample_lease_agreement.pdf, Clause 3 (RENT), page 1"]
+    model: str = ""          # the model that actually answered (differs from the default after a fallback)
 
 
 def _format_source_label(result: RetrievalResult, index: int) -> str:
@@ -139,17 +140,43 @@ def _format_source_label(result: RetrievalResult, index: int) -> str:
     return f"Source {index}: {chunk.source}, {location}"
 
 
+def _describe_api_error(exc: Exception) -> str:
+    """
+    A short, safe description of a Groq API error, e.g. "HTTP 413: Request too large ...".
+
+    Shown to the user so a failure is diagnosable instead of a vague "try again". Provider
+    error messages describe the request or the service, never the API key.
+    """
+    status = getattr(exc, "status_code", None)
+    detail = ""
+    body = getattr(exc, "body", None)
+    if isinstance(body, dict):
+        inner = body.get("error", body)
+        if isinstance(inner, dict):
+            detail = str(inner.get("message", ""))
+    detail = detail or str(getattr(exc, "message", "") or exc)
+    detail = " ".join(detail.split())[:180]
+    return f"HTTP {status}: {detail}" if status else detail
+
+
 def _build_context_block(results: List[RetrievalResult]) -> str:
     """
     Format retrieved chunks into a single context string, each prefixed
     with its citation label, ready to be inserted into the user prompt.
+
+    Each passage is capped, and the cap shrinks when many passages are sent, so the
+    whole prompt stays inside free-tier per-request token limits.
     """
+    per_chunk = min(
+        config.MAX_CONTEXT_CHARS_PER_CHUNK,
+        max(1000, config.MAX_CONTEXT_CHARS_TOTAL // max(1, len(results))),
+    )
     blocks = []
     for i, result in enumerate(results, start=1):
         label = _format_source_label(result, i)
         text = result.chunk.text
-        if len(text) > config.MAX_CONTEXT_CHARS_PER_CHUNK:
-            text = text[: config.MAX_CONTEXT_CHARS_PER_CHUNK].rsplit(" ", 1)[0] + " [excerpt truncated]"
+        if len(text) > per_chunk:
+            text = text[:per_chunk].rsplit(" ", 1)[0] + " [excerpt truncated]"
         blocks.append(f"[{label}]\n{text}")
     return "\n\n---\n\n".join(blocks)
 
@@ -170,8 +197,8 @@ class Generator:
                 "(get a free key at https://console.groq.com)."
             )
 
-        # Rate limits are handled by call_with_backoff (which honours Groq's suggested
-        # wait), so the SDK's own retry count stays low to avoid multiplying waits.
+        # Retries are handled by call_with_retry (which honours Groq's suggested wait),
+        # so the SDK's own retry count stays low to avoid multiplying waits.
         self.client = Groq(api_key=self.api_key, timeout=config.LLM_TIMEOUT_SECONDS, max_retries=1)
 
     def generate(self, question: str, retrieved_results: List[RetrievalResult]) -> GeneratedAnswer:
@@ -197,9 +224,9 @@ Question: {question}
 
 Answer the question using only the context above, citing sources by label."""
 
-        def _call():
+        def _ask(model: str):
             return self.client.chat.completions.create(
-                model=self.model,
+                model=model,
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": user_prompt},
@@ -207,20 +234,46 @@ Answer the question using only the context above, citing sources by label."""
                 temperature=0.1,  # low temperature: factual consistency, not creativity
             )
 
-        try:
-            response = call_with_backoff(_call, max_retries=config.LLM_MAX_RETRIES)
-        except groq.AuthenticationError as exc:
-            raise GenerationError("The Groq API key was rejected. Check that it is correct and still active.") from exc
-        except groq.RateLimitError as exc:
-            raise GenerationError("The free Groq quota is used up for the moment. Wait a minute and ask again.") from exc
-        except (groq.APIConnectionError, groq.APITimeoutError) as exc:
-            raise GenerationError("Could not reach the language model. Check your internet connection and try again.") from exc
-        except groq.APIError as exc:
-            logger.exception("Groq API error")
-            raise GenerationError("The language model returned an error. Please try again.") from exc
+        models = [self.model]
+        fallback = (config.GROQ_FALLBACK_MODEL or "").strip()
+        if fallback and fallback != self.model:
+            models.append(fallback)
 
-        answer_text = (response.choices[0].message.content or "").strip()
+        outcomes: List = []  # one entry per model tried: the exception, or None for an empty answer
+        answer_text, used_model = "", self.model
+        for position, model in enumerate(models):
+            try:
+                response = call_with_retry(
+                    lambda m=model: _ask(m),
+                    max_retries=config.LLM_MAX_RETRIES if position == 0 else 2,
+                )
+            except groq.AuthenticationError as exc:
+                # A rejected key will be rejected by every model, so do not fall back.
+                raise GenerationError("The Groq API key was rejected. Check that it is correct and still active.") from exc
+            except (groq.APIError, groq.APIConnectionError) as exc:
+                logger.warning("Groq call failed for model %s: %s", model, _describe_api_error(exc))
+                outcomes.append(exc)
+                continue
+
+            text = (response.choices[0].message.content or "").strip()
+            if text:
+                answer_text, used_model = text, model
+                break
+            logger.warning("Model %s returned an empty answer", model)
+            outcomes.append(None)
+
         if not answer_text:
-            raise GenerationError("The language model returned an empty answer. Please try again.")
+            # Explain what went wrong with the MAIN model. A backup that is unavailable on this
+            # account (404) must not hide the real reason the main model failed.
+            primary = outcomes[0] if outcomes else None
+            if primary is None:
+                raise GenerationError("The language model returned an empty answer. Please try again.")
+            if isinstance(primary, groq.RateLimitError):
+                raise GenerationError("The free Groq quota is used up for the moment. Wait a minute and ask again.") from primary
+            if isinstance(primary, groq.APIConnectionError):
+                raise GenerationError("Could not reach the language model. Check your internet connection and try again.") from primary
+            raise GenerationError(
+                f"The language model returned an error ({_describe_api_error(primary)}). Please try again."
+            ) from primary
 
-        return GeneratedAnswer(answer=answer_text, sources_used=source_labels)
+        return GeneratedAnswer(answer=answer_text, sources_used=source_labels, model=used_model)

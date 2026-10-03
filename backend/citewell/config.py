@@ -38,6 +38,13 @@ def _env_int(name: str, default: int, minimum: int = 1) -> int:
         return default
 
 
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None or not value.strip():
+        return default
+    return value.strip().lower() in ("1", "true", "yes", "on")
+
+
 def _env_float(name: str, default: float) -> float:
     try:
         return float(os.getenv(name, default))
@@ -56,6 +63,10 @@ def _read_settings() -> dict:
         # --- LLM (Groq) ---
         "GROQ_API_KEY": _env_str("GROQ_API_KEY", ""),
         "GROQ_MODEL": _env_str("GROQ_MODEL", "openai/gpt-oss-120b"),
+        # Optional backup, tried once if the main model fails (error, empty answer, or its own
+        # rate limit). Groq limits each model separately, so a second model often still has quota.
+        # Empty (the default) disables it: only set a model id your Groq account can actually use.
+        "GROQ_FALLBACK_MODEL": os.getenv("GROQ_FALLBACK_MODEL", "").strip(),
         "LLM_TIMEOUT_SECONDS": _env_int("LLM_TIMEOUT_SECONDS", 60),
         "LLM_MAX_RETRIES": _env_int("LLM_MAX_RETRIES", 3),
         # --- Embeddings (local, free) ---
@@ -79,6 +90,14 @@ def _read_settings() -> dict:
         "MAX_UPLOAD_MB": _env_int("MAX_UPLOAD_MB", 50),
         "MAX_PDF_PAGES": _env_int("MAX_PDF_PAGES", 600),
         "MAX_CONTEXT_CHARS_PER_CHUNK": _env_int("MAX_CONTEXT_CHARS_PER_CHUNK", 6000),
+        "MAX_CONTEXT_CHARS_TOTAL": _env_int("MAX_CONTEXT_CHARS_TOTAL", 14000),
+        # Questions one browser session may ask using the server's shared key (protects a free quota).
+        # Visitors who paste their own key are not limited.
+        "MAX_QUESTIONS_PER_SESSION": _env_int("MAX_QUESTIONS_PER_SESSION", 30, minimum=0),  # 0 = unlimited
+        # Signed-in visitors get a higher cap. A cap is per browser session, not a per-account quota.
+        "MAX_QUESTIONS_SIGNED_IN": _env_int("MAX_QUESTIONS_SIGNED_IN", 100, minimum=0),
+        # When true, visitors must sign in before asking anything (needs sign-in to be configured).
+        "REQUIRE_LOGIN": _env_bool("REQUIRE_LOGIN", False),
         # --- Logging ---
         "LOG_LEVEL": _env_str("LOG_LEVEL", "INFO").upper(),
     }

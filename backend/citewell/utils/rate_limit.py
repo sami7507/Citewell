@@ -22,7 +22,7 @@ import re
 import time
 from typing import Callable, TypeVar
 
-from groq import RateLimitError
+from groq import APIConnectionError, APIStatusError, RateLimitError
 
 T = TypeVar("T")
 
@@ -69,3 +69,39 @@ def _parse_suggested_wait_seconds(error_message: str) -> float | None:
         return float(s_match.group(1))
 
     return None
+
+
+def _is_transient(exc: Exception) -> bool:
+    """Network hiccups, timeouts and 5xx responses are worth retrying; 4xx client errors are not."""
+    if isinstance(exc, APIConnectionError):  # APITimeoutError is a subclass
+        return True
+    return isinstance(exc, APIStatusError) and getattr(exc, "status_code", 0) >= 500
+
+
+def call_with_retry(fn: Callable[[], T], max_retries: int = 3, base_delay: float = 2.0, max_delay: float = 20.0) -> T:
+    """
+    Like call_with_backoff, but also retries transient failures (connection errors,
+    timeouts and HTTP 5xx), which free-tier hosted models produce occasionally.
+
+    Rate limits honour the wait Groq suggests (plus a 0.5 s buffer); other transient
+    errors use exponential backoff. Every wait is capped at `max_delay` seconds so a
+    web user is never left staring at a spinner for minutes. Anything that is not
+    retryable (bad key, bad request, unknown model) is raised immediately, and the
+    last error is re-raised once the attempts are used up.
+    """
+    for attempt in range(max_retries):
+        try:
+            return fn()
+        except RateLimitError as exc:
+            suggested = _parse_suggested_wait_seconds(str(exc))
+            delay = (suggested + 0.5) if suggested is not None else base_delay * (2 ** attempt)
+            error = exc
+        except Exception as exc:
+            if not _is_transient(exc):
+                raise
+            delay = base_delay * (2 ** attempt)
+            error = exc
+
+        if attempt == max_retries - 1:
+            raise error
+        time.sleep(min(delay, max_delay))
